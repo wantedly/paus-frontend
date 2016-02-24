@@ -39,21 +39,12 @@
         </div>
       </form>
 
-      <h3>2. Configure your <code>~/.ssh/config</code></h3>
+      <h3>2. Add remote repository</h3>
 
       <pre>
-Host paus
-  HostName &lt;hostname_or_ip_of_paus&gt;
-  User git
-  Port 2222
-  IdentityFile ~/.ssh/id_rsa</pre>
+$ git remote add paus git@git.wantedlyapp.com:repository</pre>
 
-      <h3>3. Add remote repository</h3>
-
-      <pre>
-$ git remote add paus git@paus:repository</pre>
-
-      <h3>4. <code>git push</code> and deploy!</h3>
+      <h3>3. <code>git push</code> and deploy!</h3>
 
       <pre>
 $ git push paus master</pre>
