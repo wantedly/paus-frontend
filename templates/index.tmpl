@@ -11,7 +11,7 @@
     <div class="container">
       <h1>Paus</h1>
 
-      <h3>1. Upload your name and SSH public key</h3>
+      <h3>1. Upload username and SSH public key</h3>
 
       {{ if .alert }}
       <div class="alert {{ if .error }}alert-danger{{ else }}alert-success{{ end }}" role="alert">
@@ -23,15 +23,19 @@
         <div class="form-group">
           <label class="control-label col-sm-2" for="usernameInput">Username</label>
           <div class="col-sm-10">
-            <input type="text" class="form-control" id="usernameInput" name="username" placeholder="Username">
+            <input type="text" class="form-control" id="usernameInput" name="username" placeholder="username">
           </div>
         </div>
         <div class="form-group">
-          <label class="control-label col-sm-2" for="pubkeyInput">SSH public key</label>
+          <label class="control-label col-sm-2" for="pubkeyInput">
+            SSH public key
+            <p class="help-block" style="font-size: 9px;">cat ~/.ssh/id_rsa.pub | pbcopy</p>
+          </label>
           <div class="col-sm-10">
             <textarea class="form-control" rows="3" id="pubkeyInput" name="pubKey" placeholder="SSH public key"></textarea>
           </div>
         </div>
+
         <div class="form-group">
           <div class="col-sm-offset-2 col-sm-10">
             <button type="submit" class="btn btn-primary">Submit</button>
@@ -41,13 +45,30 @@
 
       <h3>2. Add remote repository</h3>
 
-      <pre>
-$ git remote add paus git@git.wantedlyapp.com:repository</pre>
+      <pre>$ git remote add paus git@git.wantedlyapp.com:&lt;repository&gt;</pre>
 
-      <h3>3. <code>git push</code> and deploy!</h3>
+      <h3>3. <code>git push</code> </h3>
+
+      <pre>$ git push paus master</pre>
+
+      <h3>4. deploy!</h3>
 
       <pre>
-$ git push paus master</pre>
+        =====> Building...
+        remote: web uses an image, skipping
+        =====> Pulling...
+        remote: Pulling web (localhost:5000/cs006061/sample_rails:latest)...
+        =====> Deploying...
+        remote: Creating usernamesamplerails15983f0_web_1
+        =====> sample_rails was deployed at https://username-sample_rails-15983f0.wantedlyapp.com/
+        =====> sample_rails was deployed at https://username.wantedlyapp.com/
+        To git@git.wantedlyapp.com:sample_rails
+         2ff821c..15983f0  master -> master
+      </pre>
+
+      <h3>5. Open Browser!</h3>
+
+      <pre>$ open https://username.wantedlyapp.com/</pre>
     </div>
 
     <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
