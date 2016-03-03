@@ -32,7 +32,7 @@ func main() {
     stdout, err := cmd.StdoutPipe()
 
     if err != nil {
-      c.HTML(http.StatusOK, "urls.tmpl", gin.H{
+      c.HTML(http.StatusInternalServerError, "urls.tmpl", gin.H{
         "error":   true,
         "message": strings.Join([]string{"error: ", err.Error()}, ""),
       })
@@ -57,7 +57,7 @@ func main() {
     stdout, err := cmd.StdoutPipe()
 
     if err != nil {
-      c.HTML(http.StatusOK, "user.tmpl", gin.H{
+      c.HTML(http.StatusInternalServerError, "user.tmpl", gin.H{
         "error": true,
         "message": strings.Join([]string{"error: ", err.Error()}, ""),
       })
