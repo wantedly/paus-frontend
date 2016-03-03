@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,35 +22,63 @@ func main() {
 		})
 	})
 
-  // NOTE:
-  // URL一覧を表示する。
-  // go用のetcdクライアントは存在するがetcdctl lsが使えないため、
-  // shellscriptで対応した。
-  // https://github.com/coreos/etcd/tree/master/client
-  r.GET("/urls", func(c *gin.Context) {
-    cmd := exec.Command("sh", "etcd-ls.sh")
-    stdout, err := cmd.StdoutPipe()
+	// NOTE:
+	// URL一覧を表示する。
+	// go用のetcdクライアントは存在するがetcdctl lsが使えないため、
+	// shellscriptで対応した。
+	// https://github.com/coreos/etcd/tree/master/client
+	r.GET("/urls", func(c *gin.Context) {
+		cmd := exec.Command("sh", "etcd-ls.sh")
+		stdout, err := cmd.StdoutPipe()
 
-    if err != nil {
-      c.HTML(http.StatusOK, "urls.tmpl", gin.H{
-        "error":   true,
-        "message": strings.Join([]string{"error: ", err.Error()}, ""),
-      })
-    } else {
-      cmd.Start()
-      scanner := bufio.NewScanner(stdout)
-      rep := regexp.MustCompile(`/vulcand/frontends/`)
-      url := make([]string, 0)
-      for scanner.Scan() {
-        url = append(url, rep.ReplaceAllString(scanner.Text(), ""))
-      }
-      c.HTML(http.StatusOK, "urls.tmpl", gin.H{
-        "error":   false,
-        "url":     url,
-      })
-      cmd.Wait()
-    }
-  })
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "urls.tmpl", gin.H{
+				"error":   true,
+				"message": strings.Join([]string{"error: ", err.Error()}, ""),
+			})
+		} else {
+			cmd.Start()
+			scanner := bufio.NewScanner(stdout)
+			url := make([]string, 0)
+			for scanner.Scan() {
+				url = append(url, extract_url(scanner.Text()))
+			}
+			c.HTML(http.StatusOK, "urls.tmpl", gin.H{
+				"error": false,
+				"url":   url,
+			})
+			cmd.Wait()
+		}
+	})
+
+	r.GET("/urls/:name", func(c *gin.Context) {
+		name := c.Param("name")
+		cmd := exec.Command("sh", "etcd-ls.sh")
+		stdout, err := cmd.StdoutPipe()
+
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "user.tmpl", gin.H{
+				"error":   true,
+				"message": strings.Join([]string{"error: ", err.Error()}, ""),
+			})
+		} else {
+			cmd.Start()
+			scanner := bufio.NewScanner(stdout)
+			url := make([]string, 0)
+			for scanner.Scan() {
+				result := extract_url(scanner.Text())
+				if check_username(name, result) == true {
+					url = append(url, result)
+				}
+			}
+			c.HTML(http.StatusOK, "user.tmpl", gin.H{
+				"error": false,
+				"user":  name,
+				"url":   url,
+			})
+			cmd.Wait()
+		}
+	})
 
 	r.POST("/submit", func(c *gin.Context) {
 		username := c.PostForm("username")
@@ -73,4 +103,12 @@ func main() {
 	})
 
 	r.Run()
+}
+
+func extract_url(str string) string {
+	return regexp.MustCompile(`/vulcand/frontends`).ReplaceAllString(str, "")
+}
+
+func check_username(reg, str string) bool {
+	return regexp.MustCompile(reg).MatchString(str)
 }
