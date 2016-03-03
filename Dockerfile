@@ -4,6 +4,7 @@ MAINTAINER Daisuke Fujita <dtanshi45@gmail.com> (@dtan4)
 ENV DOCKER_COMPOSE_VERSION 1.6.0
 ENV GLIBC_VERSION 2.22-r8
 ENV GLIDE_VERSION 0.8.3
+ENV ETCD_VERSION 2.2.5
 
 RUN apk --update add ca-certificates docker && \
     wget -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-Linux-x86_64 && \
@@ -15,6 +16,12 @@ RUN apk --update add ca-certificates docker && \
     rm glibc.apk glibc-bin.apk && \
     apk del --purge ca-certificates && \
     rm -rf /var/cache/apk/*
+
+RUN wget -qO /tmp/etcd-v$ETCD_VERSION-linux-amd64.tar.gz https://github.com/coreos/etcd/releases/download/v$ETCD_VERSION/etcd-v$ETCD_VERSION-linux-amd64.tar.gz && \
+    cd /tmp && \
+    tar zxf etcd-v$ETCD_VERSION-linux-amd64.tar.gz && \
+    cp etcd-v$ETCD_VERSION-linux-amd64/etcdctl /usr/local/bin/etcdctl && \
+    rm -rf etcd-v$ETCD_VERSION-linux-amd64.tar.gz etcd-v$ETCD_VERSION-linux-amd64
 
 COPY . /go/src/github.com/dtan4/paus
 RUN apk --update add git go make mercurial && \
@@ -28,6 +35,7 @@ RUN apk --update add git go make mercurial && \
     glide install && \
     make build && \
     mkdir /app && \
+    cp etcd-ls.sh /app/etcd-ls.sh && \
     cp bin/paus-frontend /app/paus-frontend && \
     cp -R templates /app/templates && \
     cd /app && \
