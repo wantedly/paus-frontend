@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+  "bufio"
+  "regexp"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,6 +52,36 @@ func main() {
     }
   })
 
+  r.GET("/urls/:name", func(c *gin.Context) {
+    name := c.Param("name")
+    cmd := exec.Command("sh", "etcd-ls.sh")
+    stdout, err := cmd.StdoutPipe()
+
+    if err != nil {
+      c.HTML(http.StatusOK, "user.tmpl", gin.H{
+        "error": true,
+        "message": strings.Join([]string{"error: ", err.Error()}, ""),
+      })
+    } else {
+      cmd.Start()
+      scanner := bufio.NewScanner(stdout)
+      rep := regexp.MustCompile(`/vulcand/frontends`)
+      url := make([]string, 0)
+      for scanner.Scan() {
+        result := rep.ReplaceAllString(scanner.Text(), "")
+        if check_username(name, result) == true {
+          url = append(url, result)
+        }
+      }
+      c.HTML(http.StatusOK, "user.tmpl", gin.H{
+        "error": false,
+        "user": name,
+        "url":   url,
+      })
+      cmd.Wait()
+    }
+  })
+
 	r.POST("/submit", func(c *gin.Context) {
 		username := c.PostForm("username")
 		pubKey := c.PostForm("pubKey")
@@ -73,4 +105,8 @@ func main() {
 	})
 
 	r.Run()
+}
+
+func check_username(reg, str string) bool {
+  return regexp.MustCompile(reg).MatchString(str)
 }
