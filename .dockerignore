@@ -6,3 +6,4 @@
 !glide.yaml
 !templates/
 !bin/paus-frontend
+!etcd-ls.sh
