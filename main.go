@@ -41,7 +41,7 @@ func main() {
       scanner := bufio.NewScanner(stdout)
       url := make([]string, 0)
       for scanner.Scan() {
-        url = append(url, extract_url(scanner.Text())
+        url = append(url, extract_url(scanner.Text()))
       }
       c.HTML(http.StatusOK, "urls.tmpl", gin.H{
         "error":   false,
