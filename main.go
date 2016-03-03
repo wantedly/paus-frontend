@@ -39,10 +39,9 @@ func main() {
     } else {
       cmd.Start()
       scanner := bufio.NewScanner(stdout)
-      rep := regexp.MustCompile(`/vulcand/frontends/`)
       url := make([]string, 0)
       for scanner.Scan() {
-        url = append(url, rep.ReplaceAllString(scanner.Text(), ""))
+        url = append(url, extract_url(scanner.Text())
       }
       c.HTML(http.StatusOK, "urls.tmpl", gin.H{
         "error":   false,
@@ -65,10 +64,9 @@ func main() {
     } else {
       cmd.Start()
       scanner := bufio.NewScanner(stdout)
-      rep := regexp.MustCompile(`/vulcand/frontends`)
       url := make([]string, 0)
       for scanner.Scan() {
-        result := rep.ReplaceAllString(scanner.Text(), "")
+        result := extract_url(scanner.Text())
         if check_username(name, result) == true {
           url = append(url, result)
         }
@@ -105,6 +103,11 @@ func main() {
 	})
 
 	r.Run()
+}
+
+
+func extract_url(str string) string {
+  return regexp.MustCompile(`/vulcand/frontends`).ReplaceAllString(str, "")
 }
 
 func check_username(reg, str string) bool {
