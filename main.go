@@ -106,7 +106,7 @@ func main() {
 }
 
 func extract_url(str string) string {
-	return regexp.MustCompile(`/vulcand/frontends`).ReplaceAllString(str, "")
+	return regexp.MustCompile(`/vulcand/frontends/`).ReplaceAllString(str, "")
 }
 
 func check_username(reg, str string) bool {
