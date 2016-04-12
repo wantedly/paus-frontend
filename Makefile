@@ -6,6 +6,10 @@ build: clean
 clean:
 	rm -f bin/paus-frontend
 
+deps:
+	go get -u github.com/Masterminds/glide
+	glide install
+
 docker-build: clean
 	docker build -f Dockerfile.build -t quay.io/dtan4/paus-frontend:latest .
 
