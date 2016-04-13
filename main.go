@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +15,26 @@ import (
 
 func appURL(uriScheme, identifier, baseDomain string) string {
 	return uriScheme + "://" + identifier + "." + baseDomain
+}
+
+func appURLs(keysAPI client.KeysAPI, uriScheme, baseDomain, username string) ([]string, error) {
+	resp, err := keysAPI.Get(context.Background(), "/vulcand/frontends/", &client.GetOptions{Sort: true})
+
+	if err != nil {
+		return nil, err
+	}
+
+	urls := make([]string, 0)
+
+	for _, node := range resp.Node.Nodes {
+		identifier := strings.Replace(node.Key, "/vulcand/frontends/", "", 1)
+
+		if username != "" && strings.Index(identifier, username) == 0 {
+			urls = append(urls, appURL(uriScheme, identifier, baseDomain))
+		}
+	}
+
+	return urls, nil
 }
 
 func main() {
@@ -54,8 +72,7 @@ func main() {
 	})
 
 	r.GET("/urls", func(c *gin.Context) {
-		// etcdctl ls --sort /vulcand/frontends
-		resp, err := keysAPI.Get(context.Background(), "/vulcand/frontends/", &client.GetOptions{Sort: true})
+		urls, err := appURLs(keysAPI, uriScheme, baseDomain, "")
 
 		if err != nil {
 			c.HTML(http.StatusInternalServerError, "urls.tmpl", gin.H{
@@ -63,24 +80,16 @@ func main() {
 				"message": strings.Join([]string{"error: ", err.Error()}, ""),
 			})
 		} else {
-			appURLs := make([]string, 0)
-
-			for _, node := range resp.Node.Nodes {
-				identifier := strings.Replace(node.Key, "/vulcand/frontends/", "", 1)
-				appURLs = append(appURLs, appURL(uriScheme, identifier, baseDomain))
-			}
-
 			c.HTML(http.StatusOK, "urls.tmpl", gin.H{
-				"error":   false,
-				"appURLs": appURLs,
+				"error": false,
+				"urls":  urls,
 			})
 		}
 	})
 
 	r.GET("/urls/:name", func(c *gin.Context) {
-		name := c.Param("name")
-		cmd := exec.Command("sh", "etcd-ls.sh")
-		stdout, err := cmd.StdoutPipe()
+		username := c.Param("name")
+		urls, err := appURLs(keysAPI, uriScheme, baseDomain, username)
 
 		if err != nil {
 			c.HTML(http.StatusInternalServerError, "user.tmpl", gin.H{
@@ -88,21 +97,11 @@ func main() {
 				"message": strings.Join([]string{"error: ", err.Error()}, ""),
 			})
 		} else {
-			cmd.Start()
-			scanner := bufio.NewScanner(stdout)
-			url := make([]string, 0)
-			for scanner.Scan() {
-				result := extract_url(scanner.Text())
-				if check_username(name, result) == true {
-					url = append(url, result)
-				}
-			}
 			c.HTML(http.StatusOK, "user.tmpl", gin.H{
 				"error": false,
-				"user":  name,
-				"url":   url,
+				"user":  username,
+				"urls":  urls,
 			})
-			cmd.Wait()
 		}
 	})
 
@@ -129,12 +128,4 @@ func main() {
 	})
 
 	r.Run()
-}
-
-func extract_url(str string) string {
-	return regexp.MustCompile(`/vulcand/frontends/`).ReplaceAllString(str, "")
-}
-
-func check_username(reg, str string) bool {
-	return regexp.MustCompile(reg).MatchString(str)
 }
