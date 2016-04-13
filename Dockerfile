@@ -35,7 +35,6 @@ RUN apk --update add git go make mercurial && \
     glide install && \
     make build && \
     mkdir /app && \
-    cp etcd-ls.sh /app/etcd-ls.sh && \
     cp bin/paus-frontend /app/paus-frontend && \
     cp -R templates /app/templates && \
     cd /app && \

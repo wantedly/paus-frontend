@@ -14,7 +14,7 @@
       </div>
       {{ else }}
       <div class="list-group">
-        {{ range .url }}<a class="list-group-item" href="https://{{ . }}.wantedlyapp.com" target="_blank">https://{{ . }}.wantedlyapp.com</a>{{ else }}Not Found URL{{ end }}
+        {{ range .urls }}<a class="list-group-item" href="{{ . }}" target="_blank">{{ . }}</a>{{ else }}Not Found URL{{ end }}
       {{ end }}
       </div>
     </div>
