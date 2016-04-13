@@ -2,15 +2,46 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/coreos/etcd/client"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/net/context"
 )
 
+func appURL(uriScheme, identifier, baseDomain string) string {
+	return uriScheme + "://" + identifier + "." + baseDomain
+}
+
 func main() {
+	baseDomain := os.Getenv("BASE_DOMAIN")
+	etcdEndpoint := os.Getenv("ETCD_ENDPOINT")
+	uriScheme := os.Getenv("URI_SCHEME")
+
+	if uriScheme == "" {
+		uriScheme = "http"
+	}
+
+	config := client.Config{
+		Endpoints:               []string{etcdEndpoint},
+		Transport:               client.DefaultTransport,
+		HeaderTimeoutPerRequest: time.Second,
+	}
+
+	c, err := client.New(config)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	keysAPI := client.NewKeysAPI(c)
+
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 
@@ -22,14 +53,9 @@ func main() {
 		})
 	})
 
-	// NOTE:
-	// URL一覧を表示する。
-	// go用のetcdクライアントは存在するがetcdctl lsが使えないため、
-	// shellscriptで対応した。
-	// https://github.com/coreos/etcd/tree/master/client
 	r.GET("/urls", func(c *gin.Context) {
-		cmd := exec.Command("sh", "etcd-ls.sh")
-		stdout, err := cmd.StdoutPipe()
+		// etcdctl ls --sort /vulcand/frontends
+		resp, err := keysAPI.Get(context.Background(), "/vulcand/frontends/", &client.GetOptions{Sort: true})
 
 		if err != nil {
 			c.HTML(http.StatusInternalServerError, "urls.tmpl", gin.H{
@@ -37,17 +63,17 @@ func main() {
 				"message": strings.Join([]string{"error: ", err.Error()}, ""),
 			})
 		} else {
-			cmd.Start()
-			scanner := bufio.NewScanner(stdout)
-			url := make([]string, 0)
-			for scanner.Scan() {
-				url = append(url, extract_url(scanner.Text()))
+			appURLs := make([]string, 0)
+
+			for _, node := range resp.Node.Nodes {
+				identifier := strings.Replace(node.Key, "/vulcand/frontends/", "", 1)
+				appURLs = append(appURLs, appURL(uriScheme, identifier, baseDomain))
 			}
+
 			c.HTML(http.StatusOK, "urls.tmpl", gin.H{
-				"error": false,
-				"url":   url,
+				"error":   false,
+				"appURLs": appURLs,
 			})
-			cmd.Wait()
 		}
 	})
 
